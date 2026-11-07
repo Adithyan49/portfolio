@@ -1,0 +1,1145 @@
+# MASTER DEVELOPMENT PROMPT
+# ADITHYAN — IMMERSIVE DEVELOPER PORTFOLIO
+### Code. Create. Innovate. Repeat.
+
+## 1. YOUR ROLE AND PROJECT OBJECTIVE
+
+Act as a senior React.js developer, professional UI/UX designer, frontend architect, motion designer and backend developer.
+
+Build a premium, futuristic, highly animated, fully responsive personal portfolio website for **Adithyan**, an aspiring AI and Machine Learning Engineer.
+
+The website must communicate my technical skills, projects, learning journey, coding activity, hackathon participation, certificates and professional interests.
+
+This must not look like a typical student portfolio template. Create a visually impressive, interactive and memorable digital experience with a consistent design system.
+
+Build a complete working website, not just a static design or frontend mockup.
+
+The website must have:
+- A professional personal brand.
+- Separate pages and components for every major section.
+- Seamless full-page navigation transitions.
+- Smooth and distinctive animations.
+- Interactive background effects.
+- A responsive dark-themed interface.
+- Working social media and contact links.
+- A real developer statistics dashboard.
+- A functional contact form.
+- A maintainable project structure.
+- Secure backend integration where required.
+
+Do not invent achievements, qualifications, coding statistics, certificates, project links or personal information.
+
+---
+
+## 2. PERSONAL INFORMATION
+
+Use the following information throughout the website.
+
+**Name:** Adithyan
+
+**Professional title:** AI & Data Science Student
+
+**Degree:** B.Tech – Artificial Intelligence and Data Science
+
+**College:** Sri Eshwar College of Engineering
+
+**Academic year:** First Year
+
+**Location:** Pollachi, Coimbatore, Tamil Nadu, India
+
+**Career goal:** AI/ML Engineer
+
+**Personal tagline:**
+
+"CODE. CREATE. INNOVATE. REPEAT."
+
+**About Me:**
+
+I am Adithyan, a first-year B.Tech Artificial Intelligence and Data Science student at Sri Eshwar College of Engineering. I am passionate about programming, technology, problem-solving and exploring the possibilities of artificial intelligence.
+
+I am currently developing my programming skills, exploring AI and machine learning concepts, building practical projects and participating in hackathons. I enjoy learning new technologies and turning ideas into useful applications.
+
+My long-term goal is to become an AI/ML Engineer and continuously improve my technical and problem-solving abilities.
+
+Keep the writing professional, genuine and suitable for an aspiring developer. Do not make me appear to have professional experience that I have not provided.
+
+---
+
+## 3. STRICT TECHNOLOGY STACK
+
+Use the following technology stack for the website.
+
+### Core frontend
+- React.js
+- JavaScript
+- HTML5
+- CSS3
+- Vite
+
+### Animation and visual effects
+- Framer Motion – animations, transitions, interactive elements and scroll-based effects.
+- Three.js – limited 3D animated technology icons in the hero section.
+- particles.js – interactive particle background.
+- CSS animations – gradient effects, glowing elements, blur effects and micro-interactions.
+
+### Backend and database
+- Supabase
+- PostgreSQL
+- Supabase Authentication
+- Supabase Storage
+- Supabase Edge Functions where necessary
+
+### Hosting
+- Vercel
+
+**Technology restrictions:**
+
+- Use React.js as the frontend framework.
+- Use Framer Motion as the primary animation library.
+- Use Three.js only for the limited hero-section 3D elements.
+- Use particles.js for the interactive particle background.
+- Do not introduce GSAP or another competing animation framework.
+- Do not use Angular, Vue or Next.js.
+- Do not use Bootstrap or ready-made generic portfolio templates.
+- Use custom CSS for the design system and layouts.
+- React Router may be used for page navigation.
+- Supabase is permitted for backend functionality.
+
+Do not replace the requested technologies with alternatives.
+
+---
+
+## 4. VISUAL DESIGN SYSTEM
+
+### Overall design
+
+Create a futuristic, sophisticated, dark-themed developer portfolio.
+
+The design should feel like a modern technology product rather than a conventional college portfolio.
+
+Use:
+- Deep midnight backgrounds.
+- Dark navy and charcoal surfaces.
+- Electric blue accents.
+- Violet and purple gradients.
+- Cyan highlights.
+- Subtle glowing borders.
+- Glass-like transparent cards.
+- Soft shadows.
+- Gradient text.
+- Animated gradient backgrounds.
+- Large, elegant typography.
+
+Use a consistent colour system throughout the application.
+
+Suggested palette:
+- Main background: #070B16
+- Secondary background: #0D1425
+- Card background: #111B30
+- Primary accent: #7C5CFC
+- Secondary accent: #00D4FF
+- Highlight: #A78BFA
+- Primary text: #F8FAFC
+- Secondary text: #94A3B8
+- Border: rgba(148, 163, 184, 0.18)
+
+You may refine the colours while preserving the overall dark futuristic identity.
+
+### Animated backgrounds
+
+Background effects are extremely important.
+
+Implement:
+- Large animated gradient blur shapes.
+- Slowly moving purple and blue gradient orbs.
+- Multiple blurred radial gradients.
+- Subtle glowing background elements.
+- Interactive particles.js background.
+- Particle movement responding to mouse interaction.
+- Subtle light effects around important sections.
+- Smooth gradient transitions between pages.
+
+The background must feel alive without distracting from the actual content.
+
+Keep text and controls readable at all times.
+
+### Important 3D restriction
+
+I do not want a full 3D website, 3D avatar, 3D character or large 3D environment.
+
+Use Three.js only for a small collection of elegant, floating 3D technology icons in the hero section.
+
+The remaining website should use a clean 2D interface with strong motion design, animated gradients, particles and interactive elements.
+
+---
+
+## 5. WEBSITE NAVIGATION AND PAGE ARCHITECTURE
+
+Create the following main navigation:
+
+1. Home
+2. About
+3. Skills
+4. Projects
+5. Learning
+6. Developer Dashboard
+7. Hackathons
+8. Certificates
+9. Contact
+
+Each section must be developed in its own separate React component file.
+
+Do not put the entire website inside one large React component.
+
+### Full-page navigation
+
+The navigation must work like a premium multi-page website.
+
+When a visitor selects a navigation item:
+- Transition smoothly to the selected page.
+- Animate the outgoing page.
+- Animate the incoming page.
+- Use Framer Motion AnimatePresence for page transitions.
+- Create a unique animation style for each page.
+- Avoid sudden white screens or flashing.
+- Keep the navigation bar consistent across pages.
+- Highlight the active navigation item.
+- Support browser back and forward navigation.
+- Scroll the new page to the top.
+- Avoid unnecessary full-page browser reloads.
+
+Use distinct but visually consistent transitions.
+
+Examples:
+- Home: cinematic fade and scale.
+- About: smooth side reveal.
+- Skills: staggered card entrance.
+- Projects: animated card arrangement.
+- Learning: vertical timeline reveal.
+- Dashboard: smooth data-panel entrance.
+- Hackathons: staggered event-card animation.
+- Certificates: gallery reveal.
+- Contact: elegant fade-up entrance.
+
+The transitions should feel smooth, professional and intentional.
+
+### Navigation responsiveness
+
+Desktop:
+- Fixed or sticky transparent navigation.
+- Elegant hover effects.
+- Animated active navigation indicator.
+
+Mobile:
+- Responsive hamburger menu.
+- Smooth menu opening and closing.
+- Touch-friendly navigation.
+- Close the menu after page selection.
+
+---
+
+## 6. HOME AND HERO SECTION
+
+Create an impressive cinematic hero page.
+
+Display:
+
+**ADITHYAN**
+
+AI & Data Science Student
+
+"Code. Create. Innovate. Repeat."
+
+Supporting introduction:
+
+"Exploring the intersection of artificial intelligence, programming and innovation. Building projects, solving problems and learning something new every day."
+
+Include:
+- A visually attractive name introduction.
+- Animated professional title.
+- Animated gradient text.
+- Floating technology icons.
+- Three.js-powered animated 3D icons.
+- Interactive particle background.
+- Animated gradient blur background.
+- A subtle scroll indicator.
+- Social media icons.
+- View Projects button.
+- Contact Me button.
+- Download Resume button.
+
+The hero section should immediately communicate that this is a developer portfolio.
+
+### Three.js hero icons
+
+Add a few floating technology-related objects such as:
+- Python symbol.
+- C++ symbol.
+- AI or neural-network-inspired icon.
+- Code symbol.
+- Database symbol.
+
+Keep them small, attractive and carefully positioned.
+
+Use slow floating movement, subtle rotation and gentle interaction.
+
+Avoid overwhelming the text or creating an unnecessarily large 3D scene.
+
+### Hero buttons
+
+**View Projects:** Navigate to the Projects page.
+
+**Contact Me:** Navigate to the Contact page.
+
+**Download Resume:** Display only when an actual resume PDF is uploaded. Never link to a nonexistent file.
+
+---
+
+## 7. ABOUT PAGE
+
+Create a dedicated About page.
+
+Display:
+- My introduction.
+- Educational background.
+- College information.
+- Current academic year.
+- Career goal.
+- Programming interests.
+- AI and machine learning interests.
+- Project development interests.
+- Hackathon participation.
+- Personal learning philosophy.
+
+Use a modern split-layout design with animated content cards.
+
+Include a small profile photograph area with a professional placeholder until an actual photograph is uploaded.
+
+Add subtle reveal animations as the page appears.
+
+Do not display unnecessary personal information such as age.
+
+---
+
+## 8. SKILLS PAGE
+
+Create an attractive and interactive technical skills page.
+
+### Programming languages
+
+Display:
+- C++
+- Python
+- HTML
+- CSS
+- JavaScript
+
+### Currently learning
+
+Display:
+- Python programming.
+- C++ programming.
+- Web development.
+- Artificial Intelligence.
+- Machine Learning.
+
+### Visual presentation
+
+Use:
+- Animated skill cards.
+- Technology icons.
+- Categorised skill groups.
+- Animated progress indicators where verified values exist.
+- Hover effects.
+- Subtle glow effects.
+- Staggered Framer Motion animations.
+
+Organise skills into categories such as:
+- Programming Languages.
+- Web Technologies.
+- AI and Machine Learning.
+- Tools and Platforms.
+
+Do not invent proficiency percentages or claim advanced expertise.
+
+Where percentages are not available, use labels such as:
+- Learning.
+- Practising.
+- Exploring.
+
+Allow skill descriptions and levels to be edited through the private admin dashboard.
+
+---
+
+## 9. PROJECTS PAGE
+
+Create a dedicated project gallery with modern, interactive project cards.
+
+Initially add the following projects.
+
+### Project 1: AgriSaarthi AI
+
+Description:
+
+An AI-powered agricultural assistant designed to help farmers make better farming decisions.
+
+The concept focuses on agricultural guidance, crop selection, soil and weather factors, irrigation and farming risks.
+
+Category: AI / Machine Learning.
+
+### Project 2: QShield
+
+Description:
+
+A quantum-inspired cybersecurity and digital-signature application.
+
+It explores digital signature security and threat scenarios such as forgery, impersonation, replay attacks and channel manipulation.
+
+Category: Cybersecurity.
+
+Do not falsely describe it as a trained AI/ML system.
+
+### Project 3: Smart Blind Stick
+
+Description:
+
+An Arduino-based assistive prototype designed to detect nearby obstacles using an ultrasonic sensor and alert the user through a buzzer.
+
+Category: Hardware / IoT.
+
+### Project 4: Personal Portfolio
+
+Description:
+
+A responsive and interactive developer portfolio showcasing my skills, projects, learning journey and technical interests.
+
+Category: Web Development.
+
+### Project card requirements
+
+Every project must support:
+- Project name.
+- Short description.
+- Detailed description.
+- Category.
+- Technologies used.
+- Project image.
+- Multiple screenshots.
+- Video demonstration.
+- GitHub repository URL.
+- Live demo URL.
+- Project status.
+- Completion date.
+
+Create filters:
+- All Projects.
+- AI / Machine Learning.
+- Web Development.
+- Cybersecurity.
+- Hardware / IoT.
+
+Each card should have:
+- Animated hover effects.
+- Technology tags.
+- View Details button.
+- GitHub button when a valid URL exists.
+- Live Demo button when a valid URL exists.
+
+Use an animated project detail view or dedicated project detail route.
+
+I will provide additional GitHub links, images, screenshots and project information later.
+
+Do not invent repository URLs or live demos. Hide unavailable buttons rather than linking to fake destinations.
+
+---
+
+## 10. LEARNING PAGE
+
+Create a dedicated Learning Journey page.
+
+The objective is to showcase my continuous learning and technical growth.
+
+Include:
+- Courses completed.
+- Courses in progress.
+- Programming concepts learned.
+- AI/ML topics explored.
+- Learning milestones.
+- Technical skills being practised.
+- Course completion dates.
+- Associated certificates.
+
+### Visual design
+
+Use:
+- Animated vertical timeline.
+- Milestone cards.
+- Completion indicators.
+- Course cards.
+- Completed and currently learning categories.
+- Animated timeline progress.
+
+Display a clear distinction between completed and ongoing learning activities.
+
+I will provide course information later.
+
+Do not create fake courses, completion dates or learning achievements.
+
+All information should be manageable through the admin dashboard.
+
+---
+
+## 11. DEVELOPER DASHBOARD
+
+Create a visually impressive public Developer Dashboard page.
+
+This page should showcase my coding platforms and technical activity.
+
+### Coding profiles
+
+**GitHub**
+
+https://github.com/Adithyan49
+
+**LeetCode**
+
+https://leetcode.com/u/adithyan_adhi/
+
+**HackerRank**
+
+https://www.hackerrank.com/profile/adithyan_r2026a1
+
+**CodeChef**
+
+https://www.codechef.com/users/plush_plume_54
+
+**Kaggle**
+
+https://www.kaggle.com/adithyanraids
+
+**GeeksforGeeks**
+
+https://www.geeksforgeeks.org/profile/adithyanr2pr2
+
+**Unstop**
+
+https://unstop.com/u/adithyan70944
+
+### Statistics to display where supported
+
+GitHub:
+- Public repositories.
+- Public contribution activity.
+- Public commits where supported.
+- Public profile information.
+
+LeetCode:
+- Problems solved.
+- Difficulty breakdown.
+- Contest information where supported.
+
+HackerRank:
+- Badges.
+- Skills.
+- Certificates where supported.
+
+CodeChef:
+- Rating.
+- Contest information.
+- Profile activity where supported.
+
+Kaggle:
+- Public profile details.
+- Competitions.
+- Medals and activity where supported.
+
+GeeksforGeeks:
+- Public profile statistics where supported.
+
+### Data accuracy rules
+
+This dashboard must display real information.
+
+- Use official APIs or permitted public sources.
+- Do not fabricate statistics.
+- Do not pretend every platform has a live API.
+- Respect authentication, rate limits and website restrictions.
+- Never bypass platform protections.
+- Use server-side integrations for private credentials.
+- Cache supported statistics.
+- Display the last successful synchronisation time.
+- Show an honest unavailable state when data cannot be retrieved.
+- Provide manual admin updates for unsupported platforms.
+
+Use attractive animated statistic cards and charts only when actual data is available.
+
+Do not display fake sample statistics as real personal achievements.
+
+Every coding profile should have a clickable button to its official profile.
+
+---
+
+## 12. HACKATHONS PAGE
+
+Create a dedicated Hackathons and Experiences page.
+
+Initially add:
+
+### AI Agent Hackathon 2026
+
+Display it as a hackathon participation experience.
+
+### Fund My Crazy 2.0
+
+Display it as a participation or event experience.
+
+Each event card should support:
+- Event name.
+- Event description.
+- Event date.
+- Participation status.
+- Role.
+- Team members.
+- Technologies used.
+- Project details.
+- Images.
+- Certificates.
+- Result or achievement, when verified.
+
+Use an animated timeline or modern event-card layout.
+
+Highlight participation, problem-solving, teamwork and learning.
+
+Do not invent rankings, prizes, awards or winning positions.
+
+Allow new hackathons to be added through the admin dashboard.
+
+---
+
+## 13. CERTIFICATES PAGE
+
+Create an elegant Certificate Gallery.
+
+The page should display certificates in a modern grid layout.
+
+Each certificate must support:
+- Certificate title.
+- Issuing organisation.
+- Completion date.
+- Short description.
+- Certificate image or PDF.
+- View Certificate button.
+- Download Certificate button.
+
+### Interactions
+
+- Animated card entrance.
+- Attractive hover effect.
+- Certificate preview modal.
+- Full-size image or PDF preview.
+- Download option.
+- Responsive gallery.
+- Clear empty state when certificates have not been uploaded.
+
+I will upload my actual certificates later.
+
+Never generate fake certificates or claim qualifications that have not been provided.
+
+Allow certificates to be uploaded, edited and deleted through the admin dashboard.
+
+---
+
+## 14. CONTACT PAGE
+
+Create a professional Contact page.
+
+The page should make it extremely easy for visitors, recruiters, developers and collaborators to contact me.
+
+### Contact form
+
+Include:
+- Full Name.
+- Email Address.
+- Subject.
+- Message.
+- Send Message button.
+
+Requirements:
+- Required field validation.
+- Correct email validation.
+- Loading indicator.
+- Submission success message.
+- Submission failure message.
+- Spam protection.
+- Responsive design.
+
+### Direct email
+
+Email:
+
+adithyanadhi2998@gmail.com
+
+Use:
+
+mailto:adithyanadhi2998@gmail.com
+
+The email button must open the visitor's default email application.
+
+The contact form should send messages to my email through a secure server-side email integration.
+
+Store submissions securely and make them accessible through the private admin dashboard.
+
+Never expose email-service credentials in frontend code.
+
+If the email provider is not configured, provide an honest fallback that lets visitors contact me directly using the mailto link.
+
+### WhatsApp contact
+
+Use my number:
+
+9659007117
+
+Create the direct WhatsApp link:
+
+https://wa.me/919659007117
+
+The WhatsApp button must open a direct chat with my number.
+
+Add a floating WhatsApp button that remains accessible across the website.
+
+Do not display my phone number as public text by default. Use it as the WhatsApp destination unless I explicitly enable public display.
+
+### Social media links
+
+LinkedIn:
+
+https://www.linkedin.com/in/adithyan-r-7420bb419/
+
+Instagram:
+
+https://www.instagram.com/aadhi49.exe/
+
+GitHub:
+
+https://github.com/Adithyan49
+
+Kaggle:
+
+https://www.kaggle.com/adithyanraids
+
+HackerRank:
+
+https://www.hackerrank.com/profile/adithyan_r2026a1
+
+CodeChef:
+
+https://www.codechef.com/users/plush_plume_54
+
+LeetCode:
+
+https://leetcode.com/u/adithyan_adhi/
+
+Unstop:
+
+https://unstop.com/u/adithyan70944
+
+GeeksforGeeks:
+
+https://www.geeksforgeeks.org/profile/adithyanr2pr2
+
+Every social icon must be clickable and open the correct external profile.
+
+Use appropriate social icons, consistent sizing, hover animations and accessible labels.
+
+Use safe external-link attributes when opening links in new tabs.
+
+---
+
+## 15. PRIVATE ADMIN DASHBOARD
+
+Create a separate private admin area for managing portfolio information.
+
+This is different from the public Developer Dashboard.
+
+The admin area must be protected by Supabase Authentication and database Row Level Security.
+
+Only authorised administrators should be able to manage protected information.
+
+### Admin capabilities
+
+Allow the administrator to:
+- Edit personal profile information.
+- Update the About section.
+- Upload and replace profile photographs.
+- Add, edit and delete skills.
+- Update skill descriptions and proficiency levels.
+- Add, edit and delete projects.
+- Upload project images and screenshots.
+- Update GitHub and live demo URLs.
+- Add and edit courses.
+- Update learning milestones.
+- Add and edit hackathons.
+- Upload certificates.
+- Update social media URLs.
+- Upload or replace a resume PDF.
+- Manage contact messages.
+- Update supported coding dashboard statistics.
+- Manage website content.
+
+Include:
+- Upload progress.
+- Form validation.
+- Success messages.
+- Error messages.
+- Edit and delete confirmations.
+- Preview before publishing important changes.
+
+The admin page must not be publicly accessible without authentication.
+
+Never rely only on frontend checks to protect admin functionality.
+
+---
+
+## 16. DATABASE AND BACKEND
+
+Use Supabase for the backend where required.
+
+Suggested PostgreSQL tables:
+
+- profiles
+- projects
+- skills
+- courses
+- learning_milestones
+- certificates
+- hackathons
+- achievements
+- social_links
+- coding_statistics
+- contact_messages
+- site_settings
+- visitor_statistics
+
+Use:
+- Appropriate data types.
+- Primary keys.
+- Foreign keys.
+- Timestamps.
+- Database constraints.
+- Indexes where useful.
+- Row Level Security policies.
+
+Public visitors should only be able to read information intended to be public.
+
+Only authorised administrators should be allowed to create, update or delete protected portfolio content.
+
+Use Supabase Storage for suitable public portfolio assets and protected administrative uploads.
+
+Never expose:
+- Supabase service-role keys.
+- Private API keys.
+- Email provider secrets.
+- Admin passwords.
+- Private credentials.
+
+Use environment variables and secure server-side functions.
+
+---
+
+## 17. FILE AND FOLDER STRUCTURE
+
+Maintain a clean, modular and scalable React project.
+
+Create separate files for individual sections, shared components, styles, pages, data and backend logic.
+
+Use a structure similar to:
+
+```text
+adithyan-portfolio/
+│
+├── public/
+│   ├── images/
+│   ├── icons/
+│   └── resume/
+│
+├── src/
+│   │
+│   ├── assets/
+│   │
+│   ├── components/
+│   │   ├── Navbar.jsx
+│   │   ├── Footer.jsx
+│   │   ├── PageTransition.jsx
+│   │   ├── AnimatedBackground.jsx
+│   │   ├── ParticleBackground.jsx
+│   │   ├── HeroIcons3D.jsx
+│   │   ├── ProjectCard.jsx
+│   │   ├── SkillCard.jsx
+│   │   ├── SocialLinks.jsx
+│   │   └── WhatsAppButton.jsx
+│   │
+│   ├── pages/
+│   │   ├── Home.jsx
+│   │   ├── About.jsx
+│   │   ├── Skills.jsx
+│   │   ├── Projects.jsx
+│   │   ├── Learning.jsx
+│   │   ├── DeveloperDashboard.jsx
+│   │   ├── Hackathons.jsx
+│   │   ├── Certificates.jsx
+│   │   └── Contact.jsx
+│   │
+│   ├── admin/
+│   │   ├── AdminLogin.jsx
+│   │   ├── AdminDashboard.jsx
+│   │   ├── ManageProjects.jsx
+│   │   ├── ManageSkills.jsx
+│   │   ├── ManageLearning.jsx
+│   │   ├── ManageHackathons.jsx
+│   │   ├── ManageCertificates.jsx
+│   │   └── ManageMessages.jsx
+│   │
+│   ├── animations/
+│   │   ├── pageVariants.js
+│   │   └── animationVariants.js
+│   │
+│   ├── data/
+│   │   ├── profile.js
+│   │   ├── projects.js
+│   │   ├── skills.js
+│   │   ├── socialLinks.js
+│   │   └── hackathons.js
+│   │
+│   ├── lib/
+│   │   ├── supabaseClient.js
+│   │   └── api.js
+│   │
+│   ├── styles/
+│   │   ├── global.css
+│   │   ├── variables.css
+│   │   ├── animations.css
+│   │   └── responsive.css
+│   │
+│   ├── App.jsx
+│   └── main.jsx
+│
+├── supabase/
+│   └── migrations/
+│
+├── .env.example
+├── .gitignore
+├── index.html
+├── package.json
+└── README.md
+```
+
+This structure can be improved when necessary, but keep every major page and section in a separate file.
+
+Do not put all sections, animations, data and styling in one file.
+
+---
+
+## 18. RESPONSIVENESS AND PERFORMANCE
+
+The website must work correctly on:
+- Mobile phones.
+- Tablets.
+- Laptops.
+- Desktop monitors.
+- Large screens.
+
+Implement:
+- Responsive layouts.
+- Responsive typography.
+- Flexible card grids.
+- Touch-friendly buttons.
+- Optimised assets.
+- Lazy loading.
+- Code splitting.
+- Efficient React rendering.
+- Reduced-motion accessibility.
+- Keyboard navigation.
+- Proper semantic HTML.
+- Accessible form labels.
+
+### Animation performance
+
+Because the website is heavily animated:
+- Avoid unnecessary animation loops.
+- Optimise Three.js rendering.
+- Limit the number of particles.
+- Pause unnecessary effects when the page is hidden.
+- Reduce animation quality on weaker mobile devices.
+- Respect prefers-reduced-motion.
+- Prevent layout shifts.
+- Avoid excessive blur filters on mobile.
+- Ensure animations do not block navigation or user interactions.
+
+Animations must remain smooth without making the website slow.
+
+---
+
+## 19. SEO AND ACCESSIBILITY
+
+Implement:
+- Meaningful page titles.
+- Meta descriptions.
+- Semantic HTML elements.
+- Descriptive link text.
+- Image alt attributes.
+- Accessible buttons.
+- Keyboard-friendly navigation.
+- Visible focus indicators.
+- Proper heading hierarchy.
+- Social sharing metadata where appropriate.
+
+Maintain readable contrast throughout the dark design.
+
+---
+
+## 20. DEVELOPMENT AND FUNCTIONALITY RULES
+
+Do not create a static website and claim that it is fully functional.
+
+Every visible interactive element must work.
+
+Examples:
+- Navigation must open the correct page.
+- Page transitions must work.
+- Project filters must filter actual projects.
+- Project detail buttons must open the correct details.
+- Social links must open the correct profiles.
+- WhatsApp must open the direct chat.
+- Email buttons must open the email application.
+- Contact form submission must provide real feedback.
+- Certificate buttons must open actual uploaded certificates.
+- Resume download must only appear when a real file exists.
+- Admin authentication must be protected.
+- Admin changes must update the stored content.
+- Statistics must use real or clearly identified manually updated data.
+
+Never add buttons that do nothing.
+
+Never use fake loading animations to disguise an unavailable integration.
+
+When a service or API is not configured, display a clear and honest unavailable state.
+
+---
+
+## 21. BUILDING PROCESS
+
+Develop the website in the following phases.
+
+**Phase 1: Project foundation**
+- Create the React and Vite project.
+- Set up the folder structure.
+- Create the global design system.
+- Set up React Router.
+- Create the responsive navigation.
+- Implement the shared layout.
+
+**Phase 2: Visual experience**
+- Implement the animated gradient backgrounds.
+- Add particles.js.
+- Create the Framer Motion animation system.
+- Add the limited Three.js hero icons.
+- Implement page transitions.
+
+**Phase 3: Portfolio pages**
+- Home.
+- About.
+- Skills.
+- Projects.
+- Learning.
+- Developer Dashboard.
+- Hackathons.
+- Certificates.
+- Contact.
+
+**Phase 4: Functionality**
+- Social integrations.
+- WhatsApp.
+- Email links.
+- Contact form.
+- Project filters.
+- Project details.
+- Certificate previews.
+
+**Phase 5: Backend**
+- Supabase connection.
+- Database tables.
+- Storage.
+- Authentication.
+- Admin dashboard.
+- Contact message storage.
+- Secure email integration.
+
+**Phase 6: Developer statistics**
+- Connect supported coding platforms.
+- Fetch verified data.
+- Add caching.
+- Add manual update support.
+- Display synchronisation status.
+
+**Phase 7: Final optimisation**
+- Test all navigation.
+- Test mobile responsiveness.
+- Check every link and button.
+- Test forms.
+- Verify authentication.
+- Check database permissions.
+- Optimise animations.
+- Test production build.
+
+---
+
+## 22. FINAL EXPECTATION
+
+The finished portfolio must have a distinctive visual identity.
+
+It should combine:
+- Premium dark-themed design.
+- Animated gradient blur backgrounds.
+- Interactive particle effects.
+- Limited Three.js animated hero icons.
+- Advanced Framer Motion transitions.
+- Separate React page components.
+- Seamless full-page navigation.
+- Professional profile and About page.
+- Technical Skills page.
+- Project showcase.
+- Learning journey.
+- Live Developer Dashboard where supported.
+- Hackathons and experiences.
+- Certificate gallery.
+- Direct email and WhatsApp contact.
+- Social media integrations.
+- Functional contact form.
+- Private admin dashboard.
+- Secure Supabase backend.
+- Responsive mobile-first layout.
+
+### Important final instructions
+
+1. Start by creating the project architecture and reusable components.
+2. Build every page in a separate file.
+3. Maintain the same visual design system throughout.
+4. Give every page its own animation style.
+5. Prioritise smooth transitions and visual consistency.
+6. Keep the website primarily 2D; Three.js is limited to hero icons.
+7. Use the personal information and project descriptions supplied in this prompt.
+8. Do not invent personal achievements, certificates, statistics or links.
+9. Make every visible button and interaction functional.
+10. Build and test the project in stages.
+11. Fix errors before proceeding to the next phase.
+12. Do not stop at a static UI or incomplete prototype.
+13. Prepare the complete project for deployment on Vercel.
+14. Document all environment variables and Supabase setup requirements.
+15. Clearly identify any integrations that still require credentials or configuration.
+
+**FINAL PROJECT IDENTITY**
+
+# ADITHYAN
+### CODE. CREATE. INNOVATE. REPEAT.
+
+Build a portfolio that represents my journey as an aspiring AI/ML Engineer and can grow with me throughout my engineering degree.
