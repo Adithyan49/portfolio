@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Shield,
   MessageSquare,
@@ -12,24 +12,47 @@ import {
   Trash2,
   CheckCircle2,
   Copy,
-  ExternalLink,
   Save,
   BarChart3,
   BookOpen,
   Video,
-  Image as ImageIcon,
   KeyRound,
   Upload,
-  Calendar,
-  Users
+  AlertCircle,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { fetchContactMessages, ContactMessage, supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
-import { initialProjects, Project } from '../data/projects';
-import { initialSkills, SkillItem, SkillStatus } from '../data/skills';
-import { initialHackathons, HackathonEvent } from '../data/hackathons';
-import { initialCertificates, Certificate } from '../data/certificates';
-import { initialBlogPosts, BlogPost } from '../data/blog';
+import { ManageProjects } from './ManageProjects';
+import { SkillItem, SkillStatus } from '../data/skills';
+import { HackathonEvent } from '../data/hackathons';
+import { Certificate } from '../data/certificates';
+import { BlogPost } from '../data/blog';
+import {
+  CodingStats,
+  DEFAULT_CODING_STATS,
+  FULL_SUPABASE_SQL_SCHEMA,
+  fileToCompressedDataUrl,
+  fetchBlogPosts,
+  createBlogPost,
+  deleteBlogPost,
+  seedInitialBlogPosts,
+  fetchCertificates,
+  createCertificate,
+  deleteCertificate,
+  seedInitialCertificates,
+  fetchHackathons,
+  createHackathon,
+  deleteHackathon,
+  seedInitialHackathons,
+  fetchSkills,
+  createSkill,
+  deleteSkill,
+  seedInitialSkills,
+  fetchCodingStats,
+  saveCodingStats,
+} from '../services/portfolioContentService';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -42,79 +65,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     'blog' | 'certificates' | 'hackathons' | 'projects' | 'skills' | 'messages' | 'stats' | 'security' | 'schema'
   >('blog');
 
-  // Helper to convert any selected file to Base64 image
-  const handleFileToBase64 = (file: File, callback: (base64: string) => void) => {
+  // Helper to compress and convert uploaded image files into lightweight Data URLs
+  const handleFileToBase64 = async (file: File, callback: (base64: string) => void) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      callback(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await fileToCompressedDataUrl(file);
+      callback(compressed);
+    } catch (err: any) {
+      showError(err?.message || 'Could not process image file.');
+    }
   };
 
   // Messages state
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
 
-  // Blog posts state
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(() => {
-    const saved = localStorage.getItem('adithyan_custom_blog_posts');
-    return saved ? JSON.parse(saved) : initialBlogPosts;
-  });
+  // Supabase-synced content states
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [loadingBlog, setLoadingBlog] = useState(true);
+  const [savingBlog, setSavingBlog] = useState(false);
 
-  // Certificates state
-  const [certificates, setCertificates] = useState<Certificate[]>(() => {
-    const saved = localStorage.getItem('adithyan_custom_certificates');
-    return saved ? JSON.parse(saved) : initialCertificates;
-  });
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [loadingCerts, setLoadingCerts] = useState(true);
+  const [savingCert, setSavingCert] = useState(false);
 
-  // Hackathons state
-  const [hackathons, setHackathons] = useState<HackathonEvent[]>(() => {
-    const saved = localStorage.getItem('adithyan_custom_hackathons');
-    return saved ? JSON.parse(saved) : initialHackathons;
-  });
+  const [hackathons, setHackathons] = useState<HackathonEvent[]>([]);
+  const [loadingHackathons, setLoadingHackathons] = useState(true);
+  const [savingHackathon, setSavingHackathon] = useState(false);
+  const [hackathonsTableMissing, setHackathonsTableMissing] = useState(false);
 
-  // Projects state
-  const [projects, setProjects] = useState<Project[]>(() => {
-    const saved = localStorage.getItem('adithyan_custom_projects');
-    return saved ? JSON.parse(saved) : initialProjects;
-  });
+  const [skills, setSkills] = useState<SkillItem[]>([]);
+  const [loadingSkills, setLoadingSkills] = useState(true);
+  const [savingSkill, setSavingSkill] = useState(false);
+  const [skillsTableMissing, setSkillsTableMissing] = useState(false);
 
-  // Skills state
-  const [skills, setSkills] = useState<SkillItem[]>(() => {
-    const saved = localStorage.getItem('adithyan_custom_skills');
-    return saved ? JSON.parse(saved) : initialSkills;
-  });
+  const [stats, setStats] = useState<CodingStats>(DEFAULT_CODING_STATS);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [savingStats, setSavingStats] = useState(false);
+  const [statsTableMissing, setStatsTableMissing] = useState(false);
 
-  // Coding stats state
-  const [stats, setStats] = useState(() => {
-    const saved = localStorage.getItem('adithyan_custom_coding_metrics');
-    return saved
-      ? JSON.parse(saved)
-      : {
-          leetcode_solved: '75+',
-          codechef_rating: '1420 (Division 3)',
-          hackerrank_badges: 'Problem Solving & C++',
-          kaggle_tier: 'Active Contributor',
-        };
-  });
+  const [seedingTab, setSeedingTab] = useState<string | null>(null);
 
   // Password management state
   const [newPw, setNewPw] = useState('');
   const [confirmNewPw, setConfirmNewPw] = useState('');
 
   const [notification, setNotification] = useState<string | null>(null);
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
   const notify = (msg: string) => {
+    setErrorBanner(null);
     setNotification(msg);
-    setTimeout(() => setNotification(null), 3500);
+    setTimeout(() => setNotification(null), 4500);
   };
 
-  useEffect(() => {
-    loadMessages();
-  }, []);
+  const showError = (msg: string) => {
+    setErrorBanner(msg);
+  };
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     setLoadingMessages(true);
     try {
       const data = await fetchContactMessages();
@@ -122,9 +131,76 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     } finally {
       setLoadingMessages(false);
     }
-  };
+  }, []);
 
-  // 1. Add Blog Post
+  const loadBlog = useCallback(async () => {
+    setLoadingBlog(true);
+    const res = await fetchBlogPosts();
+    if (res.error) {
+      showError(`Blog sync error: ${res.error}`);
+    } else {
+      setBlogPosts(res.data);
+    }
+    setLoadingBlog(false);
+  }, []);
+
+  const loadCertificates = useCallback(async () => {
+    setLoadingCerts(true);
+    const res = await fetchCertificates();
+    if (res.error) {
+      showError(`Certificates sync error: ${res.error}`);
+    } else {
+      setCertificates(res.data);
+    }
+    setLoadingCerts(false);
+  }, []);
+
+  const loadHackathons = useCallback(async () => {
+    setLoadingHackathons(true);
+    const res = await fetchHackathons();
+    setHackathonsTableMissing(res.tableMissing);
+    if (res.error) {
+      showError(`Hackathons sync error: ${res.error}`);
+    } else {
+      setHackathons(res.tableMissing ? [] : res.data);
+    }
+    setLoadingHackathons(false);
+  }, []);
+
+  const loadSkills = useCallback(async () => {
+    setLoadingSkills(true);
+    const res = await fetchSkills();
+    setSkillsTableMissing(res.tableMissing);
+    if (res.error) {
+      showError(`Skills sync error: ${res.error}`);
+    } else {
+      setSkills(res.tableMissing ? [] : res.data);
+    }
+    setLoadingSkills(false);
+  }, []);
+
+  const loadStats = useCallback(async () => {
+    setLoadingStats(true);
+    const res = await fetchCodingStats();
+    setStatsTableMissing(res.tableMissing);
+    if (res.error) {
+      showError(`Coding stats sync error: ${res.error}`);
+    } else {
+      setStats(res.data);
+    }
+    setLoadingStats(false);
+  }, []);
+
+  useEffect(() => {
+    loadMessages();
+    loadBlog();
+    loadCertificates();
+    loadHackathons();
+    loadSkills();
+    loadStats();
+  }, [loadMessages, loadBlog, loadCertificates, loadHackathons, loadSkills, loadStats]);
+
+  // 1. Add Blog Post (Supabase)
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
@@ -134,31 +210,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     linkedInPostUrl: '',
   });
 
-  const handleAddBlogPost = (e: React.FormEvent) => {
+  const handleAddBlogPost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPost.title.trim() || !newPost.content.trim()) return;
 
-    const post: BlogPost = {
-      id: 'blog_' + Date.now(),
-      title: newPost.title.trim(),
-      content: newPost.content.trim(),
-      author: {
-        name: 'Adithyan',
-        role: 'AI & Data Science Student · Sri Eshwar College',
-        avatarText: 'A',
-      },
-      date: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-      readTime: '3 min read',
+    setSavingBlog(true);
+    setErrorBanner(null);
+    const res = await createBlogPost({
+      title: newPost.title,
+      content: newPost.content,
       tags: newPost.tags.split(',').map((t) => t.trim()).filter(Boolean),
-      imageUrl: newPost.imageUrl.trim() || undefined,
-      videoUrl: newPost.videoUrl.trim() || undefined,
-      likes: 0,
-      linkedInPostUrl: newPost.linkedInPostUrl.trim() || undefined,
-    };
+      imageUrl: newPost.imageUrl || undefined,
+      videoUrl: newPost.videoUrl || undefined,
+      linkedInPostUrl: newPost.linkedInPostUrl || undefined,
+    });
+    setSavingBlog(false);
 
-    const updated = [post, ...blogPosts];
-    setBlogPosts(updated);
-    localStorage.setItem('adithyan_custom_blog_posts', JSON.stringify(updated));
+    if (res.error || !res.data) {
+      showError(res.error || 'Failed to publish blog post to Supabase.');
+      return;
+    }
+
+    setBlogPosts((prev) => [res.data!, ...prev]);
     setNewPost({
       title: '',
       content: '',
@@ -167,17 +240,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
       videoUrl: '',
       linkedInPostUrl: '',
     });
-    notify(`Published new post: "${post.title}"`);
+    if (res.schemaNotice) {
+      showError(res.schemaNotice);
+    }
+    notify(`Published post to Supabase: "${res.data.title}"`);
   };
 
-  const handleDeletePost = (id: string) => {
-    const updated = blogPosts.filter((p) => p.id !== id);
-    setBlogPosts(updated);
-    localStorage.setItem('adithyan_custom_blog_posts', JSON.stringify(updated));
-    notify('Blog post removed.');
+  const handleDeletePost = async (id: string) => {
+    const res = await deleteBlogPost(id);
+    if (!res.success) {
+      showError(res.error || 'Failed to delete blog post.');
+      return;
+    }
+    setBlogPosts((prev) => prev.filter((p) => p.id !== id));
+    notify('Blog post deleted from Supabase.');
   };
 
-  // 2. Add Certificate with Photo & Video
+  const handleSeedBlog = async () => {
+    setSeedingTab('blog');
+    const res = await seedInitialBlogPosts(blogPosts);
+    setSeedingTab(null);
+    if (res.error) {
+      showError(res.error);
+      return;
+    }
+    await loadBlog();
+    notify(res.insertedCount > 0 ? `Imported ${res.insertedCount} blog posts to Supabase.` : 'Starter blog posts are already in Supabase.');
+  };
+
+  // 2. Add Certificate with Photo & Video (Supabase)
   const [newCert, setNewCert] = useState({
     title: '',
     issuingOrganization: '',
@@ -189,25 +280,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     videoUrl: '',
   });
 
-  const handleAddCertificate = (e: React.FormEvent) => {
+  const handleAddCertificate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCert.title.trim() || !newCert.issuingOrganization.trim()) return;
 
-    const cert: Certificate = {
-      id: 'cert_' + Date.now(),
-      title: newCert.title.trim(),
-      issuingOrganization: newCert.issuingOrganization.trim(),
-      completionDate: newCert.completionDate.trim(),
-      description: newCert.description.trim() || 'Verified course completion and accredited skill verification.',
-      credentialUrl: newCert.credentialUrl.trim() || undefined,
-      imageUrl: newCert.imageUrl.trim() || undefined,
-      videoUrl: newCert.videoUrl.trim() || undefined,
+    setSavingCert(true);
+    setErrorBanner(null);
+    const res = await createCertificate({
+      title: newCert.title,
+      issuingOrganization: newCert.issuingOrganization,
+      completionDate: newCert.completionDate,
+      description: newCert.description,
+      credentialUrl: newCert.credentialUrl || undefined,
       category: newCert.category,
-    };
+      imageUrl: newCert.imageUrl || undefined,
+      videoUrl: newCert.videoUrl || undefined,
+    });
+    setSavingCert(false);
 
-    const updated = [cert, ...certificates];
-    setCertificates(updated);
-    localStorage.setItem('adithyan_custom_certificates', JSON.stringify(updated));
+    if (res.error || !res.data) {
+      showError(res.error || 'Failed to save certificate to Supabase.');
+      return;
+    }
+
+    setCertificates((prev) => [res.data!, ...prev]);
     setNewCert({
       title: '',
       issuingOrganization: '',
@@ -218,17 +314,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
       imageUrl: '',
       videoUrl: '',
     });
-    notify(`Certificate "${cert.title}" uploaded.`);
+    if (res.schemaNotice) {
+      showError(res.schemaNotice);
+    }
+    notify(`Certificate "${res.data.title}" saved to Supabase.`);
   };
 
-  const handleDeleteCertificate = (id: string) => {
-    const updated = certificates.filter((c) => c.id !== id);
-    setCertificates(updated);
-    localStorage.setItem('adithyan_custom_certificates', JSON.stringify(updated));
-    notify('Certificate deleted.');
+  const handleDeleteCertificate = async (id: string) => {
+    const res = await deleteCertificate(id);
+    if (!res.success) {
+      showError(res.error || 'Failed to delete certificate.');
+      return;
+    }
+    setCertificates((prev) => prev.filter((c) => c.id !== id));
+    notify('Certificate deleted from Supabase.');
   };
 
-  // 3. Add Hackathon with Photo & Video
+  const handleSeedCertificates = async () => {
+    setSeedingTab('certificates');
+    const res = await seedInitialCertificates(certificates);
+    setSeedingTab(null);
+    if (res.error) {
+      showError(res.error);
+      return;
+    }
+    if (res.schemaNotice) {
+      showError(res.schemaNotice);
+    }
+    await loadCertificates();
+    notify(res.insertedCount > 0 ? `Imported ${res.insertedCount} certificate record(s) to Supabase.` : 'Initial certificates already synced.');
+  };
+
+  // 3. Add Hackathon with Photo & Video (Supabase)
   const [newHackathon, setNewHackathon] = useState({
     name: '',
     description: '',
@@ -244,29 +361,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     videoUrl: '',
   });
 
-  const handleAddHackathon = (e: React.FormEvent) => {
+  const handleAddHackathon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newHackathon.name.trim()) return;
 
-    const eventItem: HackathonEvent = {
-      id: 'hack_' + Date.now(),
-      name: newHackathon.name.trim(),
-      description: newHackathon.description.trim(),
-      date: newHackathon.date.trim(),
-      participationStatus: newHackathon.participationStatus.trim(),
-      role: newHackathon.role.trim(),
+    setSavingHackathon(true);
+    setErrorBanner(null);
+    const res = await createHackathon({
+      name: newHackathon.name,
+      description: newHackathon.description,
+      date: newHackathon.date,
+      participationStatus: newHackathon.participationStatus,
+      role: newHackathon.role,
       teamMembers: newHackathon.teamMembers.split(',').map((t) => t.trim()).filter(Boolean),
       technologiesUsed: newHackathon.technologiesUsed.split(',').map((t) => t.trim()).filter(Boolean),
-      projectDetails: newHackathon.projectDetails.trim() || 'Prototyped full-stack engineering solution.',
+      projectDetails: newHackathon.projectDetails,
       keyLearnings: newHackathon.keyLearnings.split(',').map((l) => l.trim()).filter(Boolean),
-      result: newHackathon.result.trim() || undefined,
-      imageUrl: newHackathon.imageUrl.trim() || undefined,
-      videoUrl: newHackathon.videoUrl.trim() || undefined,
-    };
+      result: newHackathon.result || undefined,
+      imageUrl: newHackathon.imageUrl || undefined,
+      videoUrl: newHackathon.videoUrl || undefined,
+    });
+    setSavingHackathon(false);
 
-    const updated = [eventItem, ...hackathons];
-    setHackathons(updated);
-    localStorage.setItem('adithyan_custom_hackathons', JSON.stringify(updated));
+    if (res.error || !res.data) {
+      if (res.tableMissing) setHackathonsTableMissing(true);
+      showError(res.error || 'Failed to save hackathon to Supabase.');
+      return;
+    }
+
+    setHackathons((prev) => [res.data!, ...prev]);
     setNewHackathon({
       name: '',
       description: '',
@@ -281,79 +404,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
       imageUrl: '',
       videoUrl: '',
     });
-    notify(`Hackathon "${eventItem.name}" recorded.`);
+    notify(`Hackathon "${res.data.name}" saved to Supabase.`);
   };
 
-  const handleDeleteHackathon = (id: string) => {
-    const updated = hackathons.filter((h) => h.id !== id);
-    setHackathons(updated);
-    localStorage.setItem('adithyan_custom_hackathons', JSON.stringify(updated));
-    notify('Hackathon removed.');
+  const handleDeleteHackathon = async (id: string) => {
+    const res = await deleteHackathon(id);
+    if (!res.success) {
+      showError(res.error || 'Failed to delete hackathon.');
+      return;
+    }
+    setHackathons((prev) => prev.filter((h) => h.id !== id));
+    notify('Hackathon removed from Supabase.');
   };
 
-  // 4. Add Project with Photo & Video
-  const [newProject, setNewProject] = useState({
-    name: '',
-    category: 'AI / Machine Learning' as const,
-    shortDescription: '',
-    detailedDescription: '',
-    technologies: '',
-    status: 'In Development' as const,
-    githubUrl: '',
-    liveDemoUrl: '',
-    videoUrl: '',
-    image: '',
-  });
-
-  const handleAddProject = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProject.name.trim()) return;
-
-    const proj: Project = {
-      id: 'proj_' + Date.now(),
-      name: newProject.name.trim(),
-      category: newProject.category,
-      shortDescription: newProject.shortDescription.trim(),
-      detailedDescription: newProject.detailedDescription.trim() || newProject.shortDescription.trim(),
-      technologies: newProject.technologies.split(',').map((t) => t.trim()).filter(Boolean),
-      status: newProject.status,
-      githubUrl: newProject.githubUrl.trim() || undefined,
-      liveDemoUrl: newProject.liveDemoUrl.trim() || undefined,
-      image: newProject.image.trim() || undefined,
-      videoUrl: newProject.videoUrl.trim() || undefined,
-      features: ['Integrated technical algorithms', 'Modular architecture'],
-      architectureOverview: 'Engineered with clean component hierarchy and optimal execution pathways.',
-    };
-
-    const updated = [proj, ...projects];
-    setProjects(updated);
-    localStorage.setItem('adithyan_custom_projects', JSON.stringify(updated));
-    setNewProject({
-      name: '',
-      category: 'AI / Machine Learning',
-      shortDescription: '',
-      detailedDescription: '',
-      technologies: '',
-      status: 'In Development',
-      githubUrl: '',
-      liveDemoUrl: '',
-      videoUrl: '',
-      image: '',
-    });
-    notify(`Project "${proj.name}" added successfully.`);
+  const handleSeedHackathons = async () => {
+    setSeedingTab('hackathons');
+    const res = await seedInitialHackathons(hackathons);
+    setSeedingTab(null);
+    if (res.error) {
+      showError(res.error);
+      return;
+    }
+    await loadHackathons();
+    notify(res.insertedCount > 0 ? `Imported ${res.insertedCount} hackathon(s) to Supabase.` : 'Initial hackathons already synced.');
   };
 
-  const handleDeleteProject = (id: string) => {
-    const updated = projects.filter((p) => p.id !== id);
-    setProjects(updated);
-    localStorage.setItem('adithyan_custom_projects', JSON.stringify(updated));
-    notify('Project deleted.');
-  };
+  // 4. Projects are managed via Supabase in <ManageProjects />
 
-  // 5. Add Skill with Photo & Video
+  // 5. Add Skill with Photo & Video (Supabase)
   const [newSkill, setNewSkill] = useState({
     name: '',
-    category: 'Programming Languages' as const,
+    category: 'Programming Languages' as SkillItem['category'],
     status: 'Practising' as SkillStatus,
     description: '',
     keyTopics: '',
@@ -361,24 +442,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     videoUrl: '',
   });
 
-  const handleAddSkill = (e: React.FormEvent) => {
+  const handleAddSkill = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSkill.name.trim()) return;
 
-    const item: SkillItem = {
-      id: 'skill_' + Date.now(),
-      name: newSkill.name.trim(),
+    setSavingSkill(true);
+    setErrorBanner(null);
+    const res = await createSkill({
+      name: newSkill.name,
       category: newSkill.category,
       status: newSkill.status,
-      description: newSkill.description.trim(),
+      description: newSkill.description,
       keyTopics: newSkill.keyTopics.split(',').map((t) => t.trim()).filter(Boolean),
-      imageUrl: newSkill.imageUrl.trim() || undefined,
-      videoUrl: newSkill.videoUrl.trim() || undefined,
-    };
+      imageUrl: newSkill.imageUrl || undefined,
+      videoUrl: newSkill.videoUrl || undefined,
+    });
+    setSavingSkill(false);
 
-    const updated = [...skills, item];
-    setSkills(updated);
-    localStorage.setItem('adithyan_custom_skills', JSON.stringify(updated));
+    if (res.error || !res.data) {
+      if (res.tableMissing) setSkillsTableMissing(true);
+      showError(res.error || 'Failed to save skill to Supabase.');
+      return;
+    }
+
+    setSkills((prev) => [...prev, res.data!]);
     setNewSkill({
       name: '',
       category: 'Programming Languages',
@@ -388,14 +475,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
       imageUrl: '',
       videoUrl: '',
     });
-    notify(`Skill "${item.name}" registered.`);
+    notify(`Skill "${res.data.name}" saved to Supabase.`);
   };
 
-  const handleDeleteSkill = (id: string) => {
-    const updated = skills.filter((s) => s.id !== id);
-    setSkills(updated);
-    localStorage.setItem('adithyan_custom_skills', JSON.stringify(updated));
-    notify('Skill removed.');
+  const handleDeleteSkill = async (id: string) => {
+    const res = await deleteSkill(id);
+    if (!res.success) {
+      showError(res.error || 'Failed to delete skill.');
+      return;
+    }
+    setSkills((prev) => prev.filter((s) => s.id !== id));
+    notify('Skill removed from Supabase.');
+  };
+
+  const handleSeedSkills = async () => {
+    setSeedingTab('skills');
+    const res = await seedInitialSkills(skills);
+    setSeedingTab(null);
+    if (res.error) {
+      showError(res.error);
+      return;
+    }
+    await loadSkills();
+    notify(res.insertedCount > 0 ? `Imported ${res.insertedCount} skills to Supabase.` : 'Initial skills already synced.');
   };
 
   // 6. Supabase Admin Password Update
@@ -430,124 +532,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     }
   };
 
-  // Supabase PostgreSQL Schema & Security Policies
-  const supabaseSqlSchema = `-- Execute this SQL script in your Supabase Project (SQL Editor):
-
--- 1. Administrator Membership Table (REQUIRED FOR ADMIN ACCESS)
-CREATE TABLE IF NOT EXISTS public.admin_users (
-    user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 2. Contact Inquiries Table
-CREATE TABLE IF NOT EXISTS public.contact_messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
-    email TEXT NOT NULL,
-    subject TEXT NOT NULL,
-    message TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 3. Blog & Engineering Dispatches Table
-CREATE TABLE IF NOT EXISTS public.blog_posts (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    category TEXT DEFAULT 'AI & Systems',
-    tags TEXT[] DEFAULT '{}',
-    image_url TEXT,
-    video_url TEXT,
-    likes INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 4. Certificates & Accreditations Table
-CREATE TABLE IF NOT EXISTS public.certificates (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    issuing_organization TEXT NOT NULL,
-    completion_date TEXT,
-    description TEXT,
-    credential_url TEXT,
-    image_url TEXT,
-    video_url TEXT,
-    category TEXT DEFAULT 'Academics',
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 5. Enable Row Level Security (RLS) on all tables
-ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.certificates ENABLE ROW LEVEL SECURITY;
-
--- 6. RLS Policies
--- admin_users: Only authenticated users can view their own membership status
-CREATE POLICY "Admins can view their own membership"
-    ON public.admin_users
-    FOR SELECT
-    TO authenticated
-    USING (auth.uid() = user_id);
-
--- contact_messages: Public can submit inquiries; only verified admins can view them
-CREATE POLICY "Allow public inquiries insert"
-    ON public.contact_messages
-    FOR INSERT
-    TO anon, authenticated
-    WITH CHECK (true);
-
-CREATE POLICY "Allow admin to read inquiries"
-    ON public.contact_messages
-    FOR SELECT
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.admin_users
-            WHERE admin_users.user_id = auth.uid()
-        )
-    );
-
--- blog_posts: Public can read; only verified admins can publish or modify
-CREATE POLICY "Allow public read blog posts"
-    ON public.blog_posts
-    FOR SELECT
-    TO anon, authenticated
-    USING (true);
-
-CREATE POLICY "Allow admin to manage blog posts"
-    ON public.blog_posts
-    FOR ALL
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.admin_users
-            WHERE admin_users.user_id = auth.uid()
-        )
-    );
-
--- certificates: Public can read; only verified admins can upload or edit
-CREATE POLICY "Allow public read certificates"
-    ON public.certificates
-    FOR SELECT
-    TO anon, authenticated
-    USING (true);
-
-CREATE POLICY "Allow admin to manage certificates"
-    ON public.certificates
-    FOR ALL
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.admin_users
-            WHERE admin_users.user_id = auth.uid()
-        )
-    );
-
--- 7. Grant Admin Role to Your Supabase User Account:
--- Replace 'YOUR_USER_ID_UUID_HERE' with your auth.users UUID from Supabase Authentication:
--- INSERT INTO public.admin_users (user_id) VALUES ('YOUR_USER_ID_UUID_HERE') ON CONFLICT DO NOTHING;
-`;
+  const supabaseSqlSchema = FULL_SUPABASE_SQL_SCHEMA;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 pb-28">
@@ -585,8 +570,23 @@ CREATE POLICY "Allow admin to manage certificates"
 
       {notification && (
         <div className="mb-6 p-3.5 rounded-xl bg-purple-950/80 border border-purple-700/60 text-xs text-purple-200 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-[#00D4FF]" />
+          <CheckCircle2 className="w-4 h-4 text-[#00D4FF] shrink-0" />
           <span>{notification}</span>
+        </div>
+      )}
+
+      {errorBanner && (
+        <div className="mb-6 p-3.5 rounded-xl bg-amber-950/70 border border-amber-700/60 text-xs text-amber-200 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <span>{errorBanner}</span>
+          </div>
+          <button
+            onClick={() => setErrorBanner(null)}
+            className="text-amber-300 hover:text-white text-[11px] font-mono shrink-0"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
@@ -596,7 +596,7 @@ CREATE POLICY "Allow admin to manage certificates"
           { id: 'blog', label: `Blog (${blogPosts.length})`, icon: BookOpen },
           { id: 'certificates', label: `Certificates (${certificates.length})`, icon: Award },
           { id: 'hackathons', label: `Hackathons (${hackathons.length})`, icon: Trophy },
-          { id: 'projects', label: `Projects (${projects.length})`, icon: FolderGit2 },
+          { id: 'projects', label: 'Projects (Supabase)', icon: FolderGit2 },
           { id: 'skills', label: `Skills (${skills.length})`, icon: Terminal },
           { id: 'messages', label: `Inquiries (${messages.length})`, icon: MessageSquare },
           { id: 'stats', label: 'Coding Stats', icon: BarChart3 },
@@ -699,6 +699,20 @@ CREATE POLICY "Allow admin to manage certificates"
               </div>
 
               <div>
+                <label className="block text-[11px] font-mono text-slate-400 mb-1 flex items-center gap-1.5">
+                  <Video className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Video Link (Optional)</span>
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://youtube.com/... or loom.com/..."
+                  value={newPost.videoUrl}
+                  onChange={(e) => setNewPost({ ...newPost, videoUrl: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
+                />
+              </div>
+
+              <div>
                 <label className="block text-[11px] font-mono text-slate-400 mb-1">LinkedIn Post URL (Optional)</label>
                 <input
                   type="url"
@@ -711,38 +725,72 @@ CREATE POLICY "Allow admin to manage certificates"
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-[#7C5CFC] to-[#00D4FF]"
+                disabled={savingBlog}
+                className="w-full py-2.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-[#7C5CFC] to-[#00D4FF] disabled:opacity-60 inline-flex items-center justify-center gap-2"
               >
-                Publish Post
+                {savingBlog && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{savingBlog ? 'Publishing to Supabase...' : 'Publish Post to Supabase'}</span>
               </button>
             </form>
           </div>
 
           <div className="lg:col-span-7 space-y-3">
-            <h3 className="text-base font-bold text-white mb-2">Live Blog Posts ({blogPosts.length})</h3>
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-              {blogPosts.map((p) => (
-                <div
-                  key={p.id}
-                  className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-start justify-between gap-4"
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <h3 className="text-base font-bold text-white">Live Blog Posts ({blogPosts.length})</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSeedBlog}
+                  disabled={seedingTab === 'blog'}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] font-medium text-[#00D4FF] hover:text-white disabled:opacity-50"
                 >
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[10px] font-mono text-[#00D4FF] block mb-1">
-                      {p.date} · {p.readTime}
-                    </span>
-                    <h4 className="text-sm font-bold text-white truncate">{p.title}</h4>
-                    <p className="text-xs text-slate-400 line-clamp-2 mt-1">{p.content}</p>
-                  </div>
-                  <button
-                    onClick={() => handleDeletePost(p.id)}
-                    className="p-1.5 text-rose-400 hover:text-rose-300"
-                    title="Delete post"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+                  {seedingTab === 'blog' ? 'Importing...' : 'Import Default Posts'}
+                </button>
+                <button
+                  type="button"
+                  onClick={loadBlog}
+                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
+                  title="Refresh from Supabase"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingBlog ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
+
+            {loadingBlog ? (
+              <div className="py-12 text-center text-xs text-slate-400">Loading posts from Supabase...</div>
+            ) : blogPosts.length === 0 ? (
+              <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
+                <p className="text-xs text-slate-300">No blog posts in Supabase yet.</p>
+                <p className="text-[11px] text-slate-400">
+                  Publish a new post on the left or click &quot;Import Default Posts&quot; to sync starter articles across Mobile &amp; PC.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+                {blogPosts.map((p) => (
+                  <div
+                    key={p.id}
+                    className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-start justify-between gap-4"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-mono text-[#00D4FF] block mb-1">
+                        {p.date} · {p.readTime}
+                      </span>
+                      <h4 className="text-sm font-bold text-white truncate">{p.title}</h4>
+                      <p className="text-xs text-slate-400 line-clamp-2 mt-1">{p.content}</p>
+                    </div>
+                    <button
+                      onClick={() => handleDeletePost(p.id)}
+                      className="p-1.5 text-rose-400 hover:text-rose-300"
+                      title="Delete post"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -863,43 +911,77 @@ CREATE POLICY "Allow admin to manage certificates"
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-[#7C5CFC] to-[#00D4FF]"
+                disabled={savingCert}
+                className="w-full py-2.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-[#7C5CFC] to-[#00D4FF] disabled:opacity-60 inline-flex items-center justify-center gap-2"
               >
-                Save Certificate & Media
+                {savingCert && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{savingCert ? 'Saving to Supabase...' : 'Save Certificate to Supabase'}</span>
               </button>
             </form>
           </div>
 
           <div className="lg:col-span-7 space-y-3">
-            <h3 className="text-base font-bold text-white mb-2">Uploaded Certificates ({certificates.length})</h3>
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-              {certificates.map((c) => (
-                <div
-                  key={c.id}
-                  className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-start justify-between gap-4"
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <h3 className="text-base font-bold text-white">Uploaded Certificates ({certificates.length})</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSeedCertificates}
+                  disabled={seedingTab === 'certificates'}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] font-medium text-[#00D4FF] hover:text-white disabled:opacity-50"
                 >
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[10px] font-mono text-[#00D4FF] block mb-1">
-                      {c.category} · {c.completionDate}
-                    </span>
-                    <h4 className="text-sm font-bold text-white truncate">{c.title}</h4>
-                    <p className="text-xs text-slate-400 mt-0.5">{c.issuingOrganization}</p>
-                    {c.imageUrl && (
-                      <span className="inline-block mt-1 text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-900">
-                        Photo Attached
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => handleDeleteCertificate(c.id)}
-                    className="p-1.5 text-rose-400 hover:text-rose-300"
-                    title="Delete certificate"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+                  {seedingTab === 'certificates' ? 'Importing...' : 'Import Starter Record'}
+                </button>
+                <button
+                  type="button"
+                  onClick={loadCertificates}
+                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
+                  title="Refresh from Supabase"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingCerts ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
+
+            {loadingCerts ? (
+              <div className="py-12 text-center text-xs text-slate-400">Loading certificates from Supabase...</div>
+            ) : certificates.length === 0 ? (
+              <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
+                <p className="text-xs text-slate-300">No certificates in Supabase yet.</p>
+                <p className="text-[11px] text-slate-400">
+                  Upload a certificate on the left so it syncs across Mobile &amp; PC.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+                {certificates.map((c) => (
+                  <div
+                    key={c.id}
+                    className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-start justify-between gap-4"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-mono text-[#00D4FF] block mb-1">
+                        {c.category} · {c.completionDate}
+                      </span>
+                      <h4 className="text-sm font-bold text-white truncate">{c.title}</h4>
+                      <p className="text-xs text-slate-400 mt-0.5">{c.issuingOrganization}</p>
+                      {c.imageUrl && (
+                        <span className="inline-block mt-1 text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-900">
+                          Photo Attached
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteCertificate(c.id)}
+                      className="p-1.5 text-rose-400 hover:text-rose-300"
+                      title="Delete certificate"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1038,199 +1120,101 @@ CREATE POLICY "Allow admin to manage certificates"
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-[#7C5CFC] to-[#00D4FF]"
+                disabled={savingHackathon}
+                className="w-full py-2.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-[#7C5CFC] to-[#00D4FF] disabled:opacity-60 inline-flex items-center justify-center gap-2"
               >
-                Record Hackathon Experience
+                {savingHackathon && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{savingHackathon ? 'Saving to Supabase...' : 'Save Hackathon to Supabase'}</span>
               </button>
             </form>
           </div>
 
           <div className="lg:col-span-7 space-y-3">
-            <h3 className="text-base font-bold text-white mb-2">Hackathon Events ({hackathons.length})</h3>
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-              {hackathons.map((h) => (
-                <div
-                  key={h.id}
-                  className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-start justify-between gap-4"
-                >
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[10px] font-mono text-[#00D4FF] block mb-1">
-                      {h.date} · {h.role}
-                    </span>
-                    <h4 className="text-sm font-bold text-white truncate">{h.name}</h4>
-                    <p className="text-xs text-slate-400 line-clamp-2 mt-0.5">{h.description}</p>
-                    {h.imageUrl && (
-                      <span className="inline-block mt-1 text-[10px] font-mono text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-900">
-                        Event Photo Attached
-                      </span>
-                    )}
-                  </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <h3 className="text-base font-bold text-white">Hackathon Events ({hackathons.length})</h3>
+              <div className="flex items-center gap-2">
+                {!hackathonsTableMissing && (
                   <button
-                    onClick={() => handleDeleteHackathon(h.id)}
-                    className="p-1.5 text-rose-400 hover:text-rose-300"
-                    title="Delete hackathon"
+                    type="button"
+                    onClick={handleSeedHackathons}
+                    disabled={seedingTab === 'hackathons'}
+                    className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] font-medium text-[#00D4FF] hover:text-white disabled:opacity-50"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    {seedingTab === 'hackathons' ? 'Importing...' : 'Import Starter Hackathons'}
                   </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: Projects & Media */}
-      {activeTab === 'projects' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-5 glass-panel rounded-2xl p-6 border border-slate-800 h-fit">
-            <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
-              <Plus className="w-4 h-4 text-[#00D4FF]" />
-              <span>Add Project & Video Demonstration</span>
-            </h3>
-
-            <form onSubmit={handleAddProject} className="space-y-3">
-              <div>
-                <label className="block text-[11px] font-mono text-slate-400 mb-1">Project Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Neural Vision Scanner"
-                  value={newProject.name}
-                  onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-mono text-slate-400 mb-1">Category</label>
-                <select
-                  value={newProject.category}
-                  onChange={(e) => setNewProject({ ...newProject, category: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
-                >
-                  <option value="AI / Machine Learning">AI / Machine Learning</option>
-                  <option value="Web Development">Web Development</option>
-                  <option value="Cybersecurity">Cybersecurity</option>
-                  <option value="Hardware / IoT">Hardware / IoT</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-mono text-slate-400 mb-1">Short Summary</label>
-                <textarea
-                  rows={2}
-                  required
-                  placeholder="One sentence description..."
-                  value={newProject.shortDescription}
-                  onChange={(e) => setNewProject({ ...newProject, shortDescription: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-mono text-slate-400 mb-1">Technologies (comma-separated)</label>
-                <input
-                  type="text"
-                  placeholder="Python, PyTorch, React, OpenCV"
-                  value={newProject.technologies}
-                  onChange={(e) => setNewProject({ ...newProject, technologies: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
-                />
-              </div>
-
-              {/* Project Picture Upload */}
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2">
-                <label className="block text-[11px] font-mono text-[#00D4FF] flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5" />
-                  <span>Upload Project Banner Picture</span>
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) {
-                      handleFileToBase64(e.target.files[0], (b64) => setNewProject({ ...newProject, image: b64 }));
-                    }
-                  }}
-                  className="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-[10px] file:bg-slate-800 file:text-white"
-                />
-                <input
-                  type="url"
-                  placeholder="Or paste image link..."
-                  value={newProject.image}
-                  onChange={(e) => setNewProject({ ...newProject, image: e.target.value })}
-                  className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
-                />
-                {newProject.image && (
-                  <div className="w-full aspect-video max-h-[140px] rounded-lg overflow-hidden border border-slate-800 bg-slate-950">
-                    <img src={newProject.image} alt="Project banner preview" className="w-full h-full object-cover" />
-                  </div>
                 )}
-              </div>
-
-              {/* Video Demo Link */}
-              <div>
-                <label className="block text-[11px] font-mono text-slate-400 mb-1 flex items-center gap-1.5">
-                  <Video className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Video Demo URL / Embed (Optional)</span>
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://youtube.com/... or loom.com/..."
-                  value={newProject.videoUrl}
-                  onChange={(e) => setNewProject({ ...newProject, videoUrl: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-mono text-slate-400 mb-1">GitHub URL (Optional)</label>
-                <input
-                  type="url"
-                  placeholder="https://github.com/Adithyan49/..."
-                  value={newProject.githubUrl}
-                  onChange={(e) => setNewProject({ ...newProject, githubUrl: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-2.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-[#7C5CFC] to-[#00D4FF]"
-              >
-                Publish Project & Media
-              </button>
-            </form>
-          </div>
-
-          <div className="lg:col-span-7 space-y-3">
-            <h3 className="text-base font-bold text-white mb-2">Projects in Portfolio ({projects.length})</h3>
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-              {projects.map((p) => (
-                <div
-                  key={p.id}
-                  className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-4"
+                <button
+                  type="button"
+                  onClick={loadHackathons}
+                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
+                  title="Refresh from Supabase"
                 >
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[10px] font-mono text-[#00D4FF] block mb-0.5">
-                      {p.category} · {p.status}
-                    </span>
-                    <h4 className="text-sm font-bold text-white truncate">{p.name}</h4>
-                    <p className="text-xs text-slate-400 line-clamp-1">{p.shortDescription}</p>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteProject(p.id)}
-                    className="p-1.5 text-rose-400 hover:text-rose-300"
-                    title="Delete project"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingHackathons ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
+
+            {hackathonsTableMissing && (
+              <div className="p-4 rounded-xl bg-amber-950/60 border border-amber-700/60 text-xs text-amber-200 space-y-2">
+                <p className="font-semibold">Supabase Table Setup Required: public.hackathons</p>
+                <p className="text-amber-200/80">
+                  Run the SQL script from the &quot;Supabase SQL&quot; tab in your Supabase SQL Editor so hackathons sync across Mobile &amp; PC.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('schema')}
+                  className="px-3 py-1 rounded bg-amber-900/70 hover:bg-amber-800 text-white text-[11px] font-medium"
+                >
+                  Open Supabase SQL Tab →
+                </button>
+              </div>
+            )}
+
+            {loadingHackathons ? (
+              <div className="py-12 text-center text-xs text-slate-400">Loading hackathons from Supabase...</div>
+            ) : !hackathonsTableMissing && hackathons.length === 0 ? (
+              <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
+                <p className="text-xs text-slate-300">No hackathons in Supabase yet.</p>
+                <p className="text-[11px] text-slate-400">
+                  Add one on the left or click &quot;Import Starter Hackathons&quot;.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+                {hackathons.map((h) => (
+                  <div
+                    key={h.id}
+                    className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-start justify-between gap-4"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-mono text-[#00D4FF] block mb-1">
+                        {h.date} · {h.role}
+                      </span>
+                      <h4 className="text-sm font-bold text-white truncate">{h.name}</h4>
+                      <p className="text-xs text-slate-400 line-clamp-2 mt-0.5">{h.description}</p>
+                      {h.imageUrl && (
+                        <span className="inline-block mt-1 text-[10px] font-mono text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-900">
+                          Event Photo Attached
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteHackathon(h.id)}
+                      className="p-1.5 text-rose-400 hover:text-rose-300"
+                      title="Delete hackathon"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
+
+      {/* TAB 4: Projects & Media (Supabase public.projects) */}
+      {activeTab === 'projects' && <ManageProjects onNotify={notify} />}
 
       {/* TAB 5: Skills with Badge Photo & Video */}
       {activeTab === 'skills' && (
@@ -1350,39 +1334,91 @@ CREATE POLICY "Allow admin to manage certificates"
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-[#7C5CFC] to-[#00D4FF]"
+                disabled={savingSkill}
+                className="w-full py-2.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-[#7C5CFC] to-[#00D4FF] disabled:opacity-60 inline-flex items-center justify-center gap-2"
               >
-                Save Skill
+                {savingSkill && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{savingSkill ? 'Saving to Supabase...' : 'Save Skill to Supabase'}</span>
               </button>
             </form>
           </div>
 
           <div className="lg:col-span-7 space-y-3">
-            <h3 className="text-base font-bold text-white mb-2">Current Skills ({skills.length})</h3>
-            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-              {skills.map((s) => (
-                <div
-                  key={s.id}
-                  className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-4"
-                >
-                  <div>
-                    <div className="flex items-center gap-2 text-[10px] font-mono text-[#00D4FF]">
-                      <span>{s.category}</span>
-                      <span>·</span>
-                      <span className="text-purple-300 font-semibold">{s.status}</span>
-                    </div>
-                    <h4 className="text-xs font-bold text-white mt-0.5">{s.name}</h4>
-                  </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <h3 className="text-base font-bold text-white">Current Skills ({skills.length})</h3>
+              <div className="flex items-center gap-2">
+                {!skillsTableMissing && (
                   <button
-                    onClick={() => handleDeleteSkill(s.id)}
-                    className="p-1.5 text-rose-400 hover:text-rose-300"
-                    title="Delete skill"
+                    type="button"
+                    onClick={handleSeedSkills}
+                    disabled={seedingTab === 'skills'}
+                    className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] font-medium text-[#00D4FF] hover:text-white disabled:opacity-50"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    {seedingTab === 'skills' ? 'Importing...' : 'Import Starter Skills'}
                   </button>
-                </div>
-              ))}
+                )}
+                <button
+                  type="button"
+                  onClick={loadSkills}
+                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
+                  title="Refresh from Supabase"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingSkills ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
+
+            {skillsTableMissing && (
+              <div className="p-4 rounded-xl bg-amber-950/60 border border-amber-700/60 text-xs text-amber-200 space-y-2">
+                <p className="font-semibold">Supabase Table Setup Required: public.skills</p>
+                <p className="text-amber-200/80">
+                  Run the SQL script from the &quot;Supabase SQL&quot; tab in your Supabase SQL Editor so skills sync across Mobile &amp; PC.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('schema')}
+                  className="px-3 py-1 rounded bg-amber-900/70 hover:bg-amber-800 text-white text-[11px] font-medium"
+                >
+                  Open Supabase SQL Tab →
+                </button>
+              </div>
+            )}
+
+            {loadingSkills ? (
+              <div className="py-12 text-center text-xs text-slate-400">Loading skills from Supabase...</div>
+            ) : !skillsTableMissing && skills.length === 0 ? (
+              <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
+                <p className="text-xs text-slate-300">No skills in Supabase yet.</p>
+                <p className="text-[11px] text-slate-400">
+                  Add a skill on the left or click &quot;Import Starter Skills&quot;.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
+                {skills.map((s) => (
+                  <div
+                    key={s.id}
+                    className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-4"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2 text-[10px] font-mono text-[#00D4FF]">
+                        <span>{s.category}</span>
+                        <span>·</span>
+                        <span className="text-purple-300 font-semibold">{s.status}</span>
+                      </div>
+                      <h4 className="text-xs font-bold text-white mt-0.5">{s.name}</h4>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteSkill(s.id)}
+                      className="p-1.5 text-rose-400 hover:text-rose-300"
+                      title="Delete skill"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1433,66 +1469,109 @@ CREATE POLICY "Allow admin to manage certificates"
         </div>
       )}
 
-      {/* TAB 7: Coding Stats */}
+      {/* TAB 7: Coding Stats (Supabase) */}
       {activeTab === 'stats' && (
-        <div className="max-w-xl glass-panel rounded-2xl p-6 sm:p-8 border border-slate-800">
-          <h3 className="text-lg font-bold text-white mb-2">Configure Public Coding Metrics</h3>
-          <p className="text-xs text-slate-400 mb-6">
-            Update genuine verified milestones to display on the Developer Dashboard.
-          </p>
+        <div className="max-w-xl glass-panel rounded-2xl p-6 sm:p-8 border border-slate-800 space-y-5">
+          <div>
+            <h3 className="text-lg font-bold text-white mb-2">Configure Public Coding Metrics</h3>
+            <p className="text-xs text-slate-400">
+              Update genuine verified milestones in Supabase to sync across the Developer Dashboard on all devices.
+            </p>
+          </div>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              localStorage.setItem('adithyan_custom_coding_metrics', JSON.stringify(stats));
-              notify('Coding statistics updated across dashboard.');
-            }}
-            className="space-y-4"
-          >
-            <div>
-              <label className="block text-xs font-mono text-slate-400 mb-1">
-                LeetCode Problems Solved (Tracked)
-              </label>
-              <input
-                type="text"
-                value={stats.leetcode_solved || ''}
-                onChange={(e) => setStats({ ...stats, leetcode_solved: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
-              />
+          {statsTableMissing && (
+            <div className="p-4 rounded-xl bg-amber-950/60 border border-amber-700/60 text-xs text-amber-200 space-y-2">
+              <p className="font-semibold">Supabase Table Setup Required: public.coding_stats</p>
+              <p className="text-amber-200/80">
+                Run the SQL script from the &quot;Supabase SQL&quot; tab in your Supabase SQL Editor first.
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveTab('schema')}
+                className="px-3 py-1 rounded bg-amber-900/70 hover:bg-amber-800 text-white text-[11px] font-medium"
+              >
+                Open Supabase SQL Tab →
+              </button>
             </div>
+          )}
 
-            <div>
-              <label className="block text-xs font-mono text-slate-400 mb-1">
-                CodeChef Rating / Division
-              </label>
-              <input
-                type="text"
-                value={stats.codechef_rating || ''}
-                onChange={(e) => setStats({ ...stats, codechef_rating: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-mono text-slate-400 mb-1">
-                HackerRank Badges / Certifications
-              </label>
-              <input
-                type="text"
-                value={stats.hackerrank_badges || ''}
-                onChange={(e) => setStats({ ...stats, hackerrank_badges: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-[#7C5CFC] to-[#00D4FF]"
+          {loadingStats ? (
+            <div className="py-8 text-center text-xs text-slate-400">Loading coding stats from Supabase...</div>
+          ) : (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setSavingStats(true);
+                const res = await saveCodingStats(stats);
+                setSavingStats(false);
+                if (res.error) {
+                  if (res.tableMissing) setStatsTableMissing(true);
+                  showError(res.error);
+                  return;
+                }
+                if (res.data) setStats(res.data);
+                notify('Coding statistics saved to Supabase across all devices.');
+              }}
+              className="space-y-4"
             >
-              <Save className="w-3.5 h-3.5" />
-              <span>Save Dashboard Statistics</span>
-            </button>
-          </form>
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1">
+                  LeetCode Problems Solved (Tracked)
+                </label>
+                <input
+                  type="text"
+                  value={stats.leetcode_solved || ''}
+                  onChange={(e) => setStats({ ...stats, leetcode_solved: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1">
+                  CodeChef Rating / Division
+                </label>
+                <input
+                  type="text"
+                  value={stats.codechef_rating || ''}
+                  onChange={(e) => setStats({ ...stats, codechef_rating: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1">
+                  HackerRank Badges / Certifications
+                </label>
+                <input
+                  type="text"
+                  value={stats.hackerrank_badges || ''}
+                  onChange={(e) => setStats({ ...stats, hackerrank_badges: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-slate-400 mb-1">
+                  Kaggle Tier
+                </label>
+                <input
+                  type="text"
+                  value={stats.kaggle_tier || ''}
+                  onChange={(e) => setStats({ ...stats, kaggle_tier: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={savingStats}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-[#7C5CFC] to-[#00D4FF] disabled:opacity-60"
+              >
+                {savingStats ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                <span>{savingStats ? 'Saving to Supabase...' : 'Save Dashboard Statistics'}</span>
+              </button>
+            </form>
+          )}
         </div>
       )}
 

@@ -13,6 +13,12 @@ import {
   Clock
 } from 'lucide-react';
 
+import {
+  fetchCodingStats,
+  CodingStats,
+  DEFAULT_CODING_STATS,
+} from '../services/portfolioContentService';
+
 interface GitHubProfile {
   login: string;
   public_repos: number;
@@ -41,6 +47,7 @@ export const DeveloperDashboard: React.FC = () => {
   const [loadingGithub, setLoadingGithub] = useState<boolean>(false);
   const [githubError, setGithubError] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
+  const [customOverrides, setCustomOverrides] = useState<CodingStats>(DEFAULT_CODING_STATS);
 
   const fetchGithub = async () => {
     setLoadingGithub(true);
@@ -82,11 +89,12 @@ export const DeveloperDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchGithub();
+    fetchCodingStats().then((res) => {
+      if (res.data) {
+        setCustomOverrides(res.data);
+      }
+    });
   }, []);
-
-  // Check for admin manual overrides if stored
-  const customMetricsStr = localStorage.getItem('adithyan_custom_coding_metrics');
-  const customOverrides = customMetricsStr ? JSON.parse(customMetricsStr) : {};
 
   const platforms: PlatformMetric[] = [
     {

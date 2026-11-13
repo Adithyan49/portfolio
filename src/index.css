@@ -2,16 +2,16 @@
 
 @layer base {
   :root {
-    --bg-main: #070B16;
-    --bg-secondary: #0D1425;
-    --bg-card: #111B30;
+    --bg-main: #030305;
+    --bg-secondary: #08080C;
+    --bg-card: #0E0E14;
     --accent-primary: #7C5CFC;
     --accent-secondary: #00D4FF;
     --accent-highlight: #A78BFA;
     --text-primary: #F8FAFC;
     --text-secondary: #94A3B8;
-    --border-subtle: rgba(148, 163, 184, 0.16);
-    --border-glow: rgba(124, 92, 252, 0.35);
+    --border-subtle: rgba(255, 255, 255, 0.09);
+    --border-glow: rgba(167, 139, 250, 0.35);
   }
 
   body {
@@ -41,24 +41,24 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #070B16;
+  background: #030305;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #27272a;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #3f3f46;
 }
 
 /* Glass & Glow utilities */
 .glass-panel {
-  background: rgba(17, 27, 48, 0.65);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(12, 12, 17, 0.68);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
 }
 
 .glass-panel-hover {
@@ -66,8 +66,8 @@
 }
 
 .glass-panel-hover:hover {
-  border-color: rgba(124, 92, 252, 0.4);
-  box-shadow: 0 10px 30px -10px rgba(124, 92, 252, 0.25);
+  border-color: rgba(167, 139, 250, 0.38);
+  box-shadow: 0 12px 32px -12px rgba(124, 92, 252, 0.25);
   transform: translateY(-2px);
 }
 

@@ -14,11 +14,8 @@ import { initialCourses, initialMilestones, Course, LearningMilestone } from '..
 export const Learning: React.FC = () => {
   const [courseFilter, setCourseFilter] = useState<'All' | 'Completed' | 'In Progress'>('All');
 
-  const savedCourses = localStorage.getItem('adithyan_custom_courses');
-  const coursesList: Course[] = savedCourses ? JSON.parse(savedCourses) : initialCourses;
-
-  const savedMilestones = localStorage.getItem('adithyan_custom_milestones');
-  const milestonesList: LearningMilestone[] = savedMilestones ? JSON.parse(savedMilestones) : initialMilestones;
+  const coursesList: Course[] = initialCourses;
+  const milestonesList: LearningMilestone[] = initialMilestones;
 
   const filteredCourses = courseFilter === 'All'
     ? coursesList

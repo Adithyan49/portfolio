@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AnimatedBackground } from './components/AnimatedBackground';
-import { ParticleBackground } from './components/ParticleBackground';
 import { WhatsAppButton } from './components/WhatsAppButton';
 
 import { Home } from './pages/Home';
@@ -150,10 +149,9 @@ function AppContent() {
   const activeVariant = pageVariants[currentPage] || pageVariants.home;
 
   return (
-    <div className="min-h-screen bg-[#070B16] text-[#F8FAFC] selection:bg-[#7C5CFC]/30 selection:text-white flex flex-col justify-between relative overflow-x-hidden">
-      {/* Background Visual Effects */}
+    <div className="min-h-screen bg-[#030305] text-[#F8FAFC] selection:bg-[#7C5CFC]/30 selection:text-white flex flex-col justify-between relative overflow-x-hidden">
+      {/* WebGL Cursor-Reactive Fluid Background */}
       <AnimatedBackground />
-      <ParticleBackground />
 
       {/* Sticky Glass Navbar */}
       <Navbar currentPage={currentPage} onNavigate={handleNavigate} />

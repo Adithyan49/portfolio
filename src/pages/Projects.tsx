@@ -1,34 +1,57 @@
-import React, { useState } from 'react';
-import { Search, Sparkles, FolderGit2 } from 'lucide-react';
-import { initialProjects, Project } from '../data/projects';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Search, FolderGit2, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
+import {
+  DbProject,
+  fetchPublishedProjects,
+  PROJECT_CATEGORIES,
+} from '../services/projectService';
 import { ProjectCard } from '../components/ProjectCard';
 import { ProjectDetailModal } from '../components/ProjectDetailModal';
 
-const FILTER_TABS = [
-  'All Projects',
-  'AI / Machine Learning',
-  'Web Development',
-  'Cybersecurity',
-  'Hardware / IoT'
-];
+const FILTER_TABS = ['All', ...PROJECT_CATEGORIES];
 
 export const Projects: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>('All Projects');
+  const [projects, setProjects] = useState<DbProject[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedProject, setSelectedProject] = useState<DbProject | null>(null);
 
-  // Read custom projects if added via Admin
-  const savedProjects = localStorage.getItem('adithyan_custom_projects');
-  const projectsList: Project[] = savedProjects ? JSON.parse(savedProjects) : initialProjects;
+  const loadPublishedProjects = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-  const filteredProjects = projectsList.filter((project) => {
+    const { data, error: fetchError } = await fetchPublishedProjects();
+    if (fetchError) {
+      setError(fetchError);
+      setProjects([]);
+    } else {
+      setProjects(data);
+    }
+
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadPublishedProjects();
+  }, [loadPublishedProjects]);
+
+  const filteredProjects = projects.filter((project) => {
+    // Only display published projects
+    if (!project.is_published) return false;
+
     const matchesCategory =
-      activeTab === 'All Projects' || project.category === activeTab;
+      activeTab === 'All' || project.category === activeTab;
+
+    const q = searchQuery.trim().toLowerCase();
     const matchesSearch =
-      searchQuery.trim() === '' ||
-      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.shortDescription.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.technologies.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+      q === '' ||
+      project.title.toLowerCase().includes(q) ||
+      project.short_description.toLowerCase().includes(q) ||
+      project.description.toLowerCase().includes(q) ||
+      project.technologies.some((t) => t.toLowerCase().includes(q));
 
     return matchesCategory && matchesSearch;
   });
@@ -36,7 +59,12 @@ export const Projects: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 pb-28 sm:pb-24">
       {/* Header */}
-      <div className="mb-10">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="mb-10"
+      >
         <div className="flex items-center gap-2 text-xs font-mono text-[#00D4FF] mb-2 uppercase tracking-wider">
           <FolderGit2 className="w-4 h-4" />
           <span>Engineering Portfolio & Systems</span>
@@ -47,7 +75,7 @@ export const Projects: React.FC = () => {
         <p className="text-slate-400 text-sm sm:text-base mt-2 max-w-2xl">
           Practical applications spanning artificial intelligence, quantum-inspired cybersecurity, embedded assistive hardware, and modern web architectures.
         </p>
-      </div>
+      </motion.div>
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-10">
@@ -59,7 +87,7 @@ export const Projects: React.FC = () => {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-3.5 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap shrink-0 transition-all ${
+                className={`px-3.5 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                   isActive
                     ? 'bg-gradient-to-r from-[#7C5CFC] to-[#6366F1] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
@@ -84,31 +112,67 @@ export const Projects: React.FC = () => {
         </div>
       </div>
 
-      {/* Projects Grid */}
-      {filteredProjects.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-          {filteredProjects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              onSelect={(p) => setSelectedProject(p)}
-            />
-          ))}
+      {/* Loading State */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-20 glass-panel rounded-2xl border border-slate-800">
+          <Loader2 className="w-7 h-7 text-[#00D4FF] animate-spin mb-3" />
+          <p className="text-xs font-mono text-slate-400">
+            Loading published projects from Supabase...
+          </p>
         </div>
-      ) : (
+      )}
+
+      {/* Error State */}
+      {!loading && error && (
+        <div className="p-6 rounded-2xl bg-rose-950/30 border border-rose-800/60 text-center space-y-3">
+          <AlertCircle className="w-6 h-6 text-rose-400 mx-auto" />
+          <p className="text-sm text-rose-200 font-medium">Unable to retrieve projects</p>
+          <p className="text-xs text-rose-300/80 max-w-md mx-auto">{error}</p>
+          <button
+            onClick={loadPublishedProjects}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white hover:bg-slate-800 cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Retry</span>
+          </button>
+        </div>
+      )}
+
+      {/* Projects Grid */}
+      {!loading && !error && filteredProjects.length > 0 && (
+        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+          <AnimatePresence mode="popLayout">
+            {filteredProjects.map((project, index) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                index={index}
+                onSelect={(p) => setSelectedProject(p)}
+              />
+            ))}
+          </AnimatePresence>
+        </motion.div>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && filteredProjects.length === 0 && (
         <div className="text-center py-16 glass-panel rounded-2xl border border-slate-800">
           <p className="text-slate-400 text-sm">
-            No projects matched your criteria.
+            {projects.length === 0
+              ? 'No published projects are currently listed.'
+              : 'No projects matched your criteria.'}
           </p>
-          <button
-            onClick={() => {
-              setActiveTab('All Projects');
-              setSearchQuery('');
-            }}
-            className="mt-3 text-xs text-[#00D4FF] hover:underline"
-          >
-            Reset filters
-          </button>
+          {(activeTab !== 'All' || searchQuery.trim() !== '') && (
+            <button
+              onClick={() => {
+                setActiveTab('All');
+                setSearchQuery('');
+              }}
+              className="mt-3 text-xs text-[#00D4FF] hover:underline cursor-pointer"
+            >
+              Reset filters
+            </button>
+          )}
         </div>
       )}
 

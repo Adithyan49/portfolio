@@ -160,6 +160,9 @@ export const ParticleBackground: React.FC = () => {
       animationFrameId = requestAnimationFrame(render);
     };
 
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
     render();
 
     return () => {
@@ -175,7 +178,7 @@ export const ParticleBackground: React.FC = () => {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-0"
-      style={{ opacity: 0.85 }}
+      style={{ opacity: 0.42 }}
       aria-hidden="true"
     />
   );
